@@ -739,7 +739,7 @@ Layer("系统");
     {
         var rel = p.Substring(treeRoot.Length + 1).Replace('\\', '/');
         if (rel.Contains("/obj/") || rel.Contains("/bin/") || rel.Contains("/.git/") || rel.Contains("/.vs/")
-            || rel.StartsWith("typecheck/") || rel.StartsWith("logictest/")) continue;
+            || rel.StartsWith("typecheck/") || rel.StartsWith("logictest/") || rel.StartsWith("docs/")) continue;
         if (rel.Any(c => c > 127)) { clean = false; hit = rel; break; }
         if (p.EndsWith(".cs") || p.EndsWith(".xaml"))
         {
