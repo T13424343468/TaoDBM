@@ -55,10 +55,10 @@ Snap "evidence\realuser-launch.png"
 [int[]]$rect = [RealUser]::RectOf($hwnd)
 $cx = [int](($rect[0] + $rect[2]) / 2); $cy = [int](($rect[1] + $rect[3]) / 2)
 $points = @(
-  @($cx, $rect[1] + 40),        # 顶部工具栏区
-  @($rect[0] + 80, $rect[1] + 120),
-  @($cx, $cy),                  # 窗口中央
-  @($rect[2] - 100, $rect[3] - 80)
+  @($cx, ($rect[1] + 40)),        # 顶部工具栏区
+  @(($rect[0] + 80), ($rect[1] + 120)),
+  @($cx, $cy),                    # 窗口中央
+  @(($rect[2] - 100), ($rect[3] - 80))
 )
 foreach ($pt in $points) {
   [RealUser]::Click($pt[0], $pt[1]); Start-Sleep -Milliseconds 400
