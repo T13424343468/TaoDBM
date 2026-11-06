@@ -952,7 +952,7 @@ Layer("暴力");
 // 沙箱不编译 WinUI App 工程，界面侧编译错误只有真机能看见——
 // 源码层兜底：App 工程所有 .cs 对 ThemePalette/ThemeStore 的静态成员引用必须有定义。
 {
-    string coreDir = "/root/workspace/projects/196708/TaoDBM/src/TaoDBM";
+    string coreDir = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "src", "TaoDBM"));
     var defs = File.ReadAllText(Path.Combine(coreDir, "Core", "ThemePalette.cs"))
         + File.ReadAllText(Path.Combine(coreDir, "Core", "ThemeStore.cs"));
     var orphans = new List<string>();
