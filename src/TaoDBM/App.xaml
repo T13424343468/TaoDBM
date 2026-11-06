@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Application
+    x:Class="TaoDBM.App"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
+            </ResourceDictionary.MergedDictionaries>
+            <!-- A2 强调色族随象：accent 全族（含浅/深变体）由 UI/Ant 运行时挂会变色画刷，勿在此写死色值 -->
+            <x:Double x:Key="AntRadius">8</x:Double>
+            <FontFamily x:Key="AntMono">Consolas, Cascadia Mono, Courier New</FontFamily>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

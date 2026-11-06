@@ -1,0 +1,88 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Window
+    x:Class="TaoDBM.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="TaoDBM">
+
+    <Grid Background="{ThemeResource AntBg}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="48"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- 顶栏 -->
+        <Border Grid.Row="0" Background="{ThemeResource AntPrimary}">
+            <Grid>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="6,0,0,0" Spacing="10">
+                    <Button x:Name="BtnLogo" Background="Transparent" BorderThickness="0" Padding="4">
+                        <Button.Flyout>
+                            <MenuFlyout Placement="BottomEdgeAlignedLeft">
+                                <MenuFlyoutItem Text="刷新" Click="OnRefreshSel"/>
+                                <MenuFlyoutItem Text="新建查询" Click="OnNewQuerySel"/>
+                                <MenuFlyoutItem Text="查看数据" Click="OnBrowseSel"/>
+                                <MenuFlyoutItem Text="设计表" Click="OnDesignSel"/>
+                                <MenuFlyoutSeparator/>
+                                <MenuFlyoutItem Text="备份 / 还原" Click="OnBackupSel"/>
+                                <MenuFlyoutItem Text="传输" Click="OnSyncSel"/>
+                                <MenuFlyoutItem Text="ER 图" Click="OnErdSel"/>
+                                <MenuFlyoutSeparator/>
+                                <MenuFlyoutItem Text="编辑连接" Click="OnEditConn"/>
+                                <MenuFlyoutItem Text="删除连接" Click="OnDelConn"/>
+                                <MenuFlyoutSeparator/>
+                                <MenuFlyoutItem Text="设置" Click="OnSettings"/>
+                                                            </MenuFlyout>
+                        </Button.Flyout>
+                        <Image x:Name="LogoImg" Width="26" Height="26"/>
+                    </Button>
+                    <TextBlock x:Name="AppTitleText" Text="TaoDBM" FontSize="16" FontWeight="SemiBold"
+                               Foreground="{ThemeResource AntOnPrimary}" VerticalAlignment="Center"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,12,0" Spacing="8">
+                    <Button x:Name="BtnNewConn" Content="＋ 新建连接" Click="OnNewConn"
+                            Background="{ThemeResource AntCard}" Foreground="{ThemeResource AntPrimary}" BorderThickness="0"
+                            CornerRadius="4" Padding="12,5"/>
+                    <Button x:Name="BtnTheme" Content="主题" ClickMode="Press"
+                            Background="Transparent" Foreground="{ThemeResource AntOnPrimary}" BorderBrush="#66FFFFFF" CornerRadius="4" Padding="10,5">
+                        <Button.Flyout>
+                            <MenuFlyout Placement="BottomEdgeAlignedRight">
+                                <ToggleMenuFlyoutItem x:Name="ThemeInk" Text="水墨" Click="OnThemeInk"/>
+                                <ToggleMenuFlyoutItem x:Name="ThemeSky" Text="天青" Click="OnThemeGray"/>
+                                <ToggleMenuFlyoutItem x:Name="ThemeNight" Text="墨夜" Click="OnThemeNight"/>
+                            </MenuFlyout>
+                        </Button.Flyout>
+                    </Button>
+                    <Button x:Name="BtnAbout" Content="关于" Click="OnAbout" ClickMode="Press"
+                            Background="Transparent" Foreground="{ThemeResource AntOnPrimary}" BorderBrush="#66FFFFFF" CornerRadius="4" Padding="10,5"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- 主区 -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="300"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- 左侧连接树：仅显示连接 / 库 / 表 -->
+            <Border Grid.Column="0" BorderBrush="{ThemeResource AntBorder}" BorderThickness="0,0,1,0" Background="{ThemeResource AntCard}">
+                <TreeView x:Name="ConnTree"
+                          Expanding="OnNodeExpanding"
+                          SelectionChanged="OnTreeSelection"
+                          RightTapped="OnTreeRightTapped"/>
+            </Border>
+
+            <!-- 右侧工作区 -->
+            <TabView x:Name="WorkTabs" Grid.Column="1" Background="{ThemeResource AntBg}"
+                     TabWidthMode="SizeToContent" CanDragTabs="False"
+                     TabCloseRequested="OnTabClose"/>
+        </Grid>
+
+        <!-- 状态栏 -->
+        <Border Grid.Row="2" Background="{ThemeResource AntCard}" BorderBrush="{ThemeResource AntBorder}" BorderThickness="0,1,0,0">
+            <TextBlock x:Name="StatusText" Margin="12,4" FontSize="12" Foreground="{ThemeResource AntTextSub}" Text="就绪"/>
+        </Border>
+    </Grid>
+</Window>

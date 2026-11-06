@@ -1,0 +1,223 @@
+﻿<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+
+  <!-- TaoDBM 安装包：微信式单页安装界面（协议勾选 + 目录 + 选项） -->
+  <Package Codepage="936" Name="TaoDBM"
+           Manufacturer="TaoDBM"
+           Version="1.0.8"
+           UpgradeCode="7A2E9C48-5F13-4B86-9D2A-6C4E8B1F5D70"
+           Scope="perMachine"
+           Compressed="yes">
+
+    <MajorUpgrade DowngradeErrorMessage="已安装了更新版本的 TaoDBM，如需重装请先在“应用”中卸载。" AllowSameVersionUpgrades="yes" />
+    <MediaTemplate EmbedCab="yes" />
+    <!-- 卸载列表图标：设置-应用/软件管理里显示 TaoDBM 自己的图标 -->
+    <Icon Id="TaoDBMIco" SourceFile="..\TaoDBM\Assets\TaoDBM.ico" />
+    <Property Id="ARPPRODUCTICON" Value="TaoDBMIco" />
+
+    <Property Id="ARPNOREPAIR" Value="1" />
+    <Property Id="KILLCMD" Value="[SystemFolder]cmd.exe" />
+    <!-- 进程残留专项：安装/升级/卸载前结束运行中的 TaoDBM，避免装完卸完进程还在 -->
+    <CustomAction Id="KillRunningApp" Property="KILLCMD"
+                  ExeCommand="/d /c taskkill /f /im TaoDBM.exe"
+                  Execute="immediate" Return="ignore" />
+    <Property Id="DESKTOP_SHORTCUT" Value="1" />
+    <Property Id="STARTMENU_SHORTCUT" Value="1" />
+    <Property Id="ADD_TO_PATH" Value="1" />
+
+    <UI Id="TaoDBMInstallUI">
+      <TextStyle Id="DlgFont" FaceName="微软雅黑" Size="9" />
+      <TextStyle Id="TitleFont" FaceName="微软雅黑" Size="13" Bold="yes" />
+      <Property Id="DefaultUIFont" Value="DlgFont" />
+
+      <!-- 主页：许可 + 目录 + 选项 -->
+      <Dialog Id="MainDlg" Width="440" Height="300" Title="[ProductName] 安装程序">
+        <Control Id="Title" Type="Text" X="20" Y="12" Width="400" Height="22"
+                 Text="{\TitleFont}安装 TaoDBM" />
+        <Control Id="LicenseText" Type="Text" X="20" Y="42" Width="400" Height="92"
+                 Text="TaoDBM 1.0.8，版权所有 (c) 2026。本软件供个人与商业用途自由使用。继续安装即表示您接受：本软件按“现状”提供，作者不对使用本软件产生的任何损失承担责任。请仅连接您有权访问的数据库。" />
+        <Control Id="AcceptCheck" Type="CheckBox" X="20" Y="140" Width="400" Height="16"
+                 Property="LICENSE_ACCEPTED" CheckBoxValue="1"
+                 Text="我已阅读并同意许可协议" />
+        <Control Id="SepLine" Type="Line" X="20" Y="164" Width="400" Height="1" />
+
+        <Control Id="DirLabel" Type="Text" X="20" Y="174" Width="320" Height="14"
+                 Text="安装目录（可直接输入，不存在的文件夹会自动创建）：" />
+        <Control Id="DirEdit" Type="PathEdit" X="20" Y="192" Width="310" Height="17"
+                 Property="INSTALLFOLDER" />
+        <Control Id="DeskCheck" Type="CheckBox" X="20" Y="218" Width="320" Height="16"
+                 Property="DESKTOP_SHORTCUT" CheckBoxValue="1" Text="创建桌面快捷方式">
+          <Publish Event="Remove" Value="DeskShortcutF" Condition="NOT DESKTOP_SHORTCUT" />
+          <Publish Event="AddLocal" Value="DeskShortcutF" Condition="DESKTOP_SHORTCUT" />
+        </Control>
+        <Control Id="MenuCheck" Type="CheckBox" X="20" Y="238" Width="320" Height="16"
+                 Property="STARTMENU_SHORTCUT" CheckBoxValue="1" Text="创建开始菜单快捷方式">
+          <Publish Event="Remove" Value="MenuShortcutF" Condition="NOT STARTMENU_SHORTCUT" />
+          <Publish Event="AddLocal" Value="MenuShortcutF" Condition="STARTMENU_SHORTCUT" />
+        </Control>
+        <Control Id="PathCheck" Type="CheckBox" X="20" Y="258" Width="320" Height="16"
+                 Property="ADD_TO_PATH" CheckBoxValue="1" Text="添加安装目录到系统 PATH（可在命令行直接运行 taodbm）">
+          <Publish Event="Remove" Value="PathEnvF" Condition="NOT ADD_TO_PATH" />
+          <Publish Event="AddLocal" Value="PathEnvF" Condition="ADD_TO_PATH" />
+        </Control>
+
+        <Control Id="InstallNow" Type="PushButton" X="340" Y="240" Width="80" Height="24"
+                 Default="yes" Text="立即安装">
+          <Publish Event="SpawnDialog" Value="AcceptWarnDlg" Condition="NOT LICENSE_ACCEPTED" Order="1" />
+          <Publish Event="NewDialog" Value="VerifyReadyDlg" Condition="LICENSE_ACCEPTED" Order="2" />
+        </Control>
+        <Control Id="CancelBtn" Type="PushButton" X="340" Y="268" Width="80" Height="18"
+                 Cancel="yes" Text="取消">
+          <Publish Event="EndDialog" Value="Exit" />
+        </Control>
+      </Dialog>
+
+      <Dialog Id="VerifyReadyDlg" Width="440" Height="130" Title="[ProductName] 安装程序">
+        <Control Id="ReadyText" Type="Text" X="20" Y="30" Width="400" Height="24"
+                 Text="准备安装 TaoDBM，点击“安装”开始。" />
+        <Control Id="BackBtn" Type="PushButton" X="270" Y="95" Width="70" Height="22" Text="返回">
+          <Publish Event="NewDialog" Value="MainDlg" />
+        </Control>
+        <Control Id="InstallBtn" Type="PushButton" X="350" Y="95" Width="70" Height="22"
+                 Default="yes" Text="安装">
+          <Publish Event="EndDialog" Value="Return" />
+        </Control>
+      </Dialog>
+
+      <Dialog Id="ProgressDlg" Width="440" Height="110" Title="[ProductName] 安装程序" Modeless="yes">
+        <Control Id="ProgressText" Type="Text" X="20" Y="24" Width="400" Height="14"
+                 Text="正在安装，请稍候……" />
+        <Control Id="ProgressBar" Type="ProgressBar" X="20" Y="48" Width="400" Height="14"
+                 Text="正在安装" />
+        <Control Id="CancelBtn" Type="PushButton" X="350" Y="78" Width="70" Height="20"
+                 Cancel="yes" Text="取消">
+          <Publish Event="SpawnDialog" Value="CancelDlg" />
+        </Control>
+      </Dialog>
+
+      <Dialog Id="AcceptWarnDlg" Width="280" Height="90" Title="[ProductName] 安装程序">
+        <Control Id="WarnText" Type="Text" X="20" Y="18" Width="240" Height="18"
+                 Text="请先勾选“我已阅读并同意许可协议”。" />
+        <Control Id="OkBtn" Type="PushButton" X="110" Y="55" Width="60" Height="20"
+                 Default="yes" Text="确定">
+          <Publish Event="EndDialog" Value="Return" />
+        </Control>
+      </Dialog>
+      <Dialog Id="CancelDlg" Width="280" Height="90" Title="[ProductName] 安装程序">
+        <Control Id="CancelText" Type="Text" X="20" Y="18" Width="240" Height="18"
+                 Text="确定要取消安装吗？" />
+        <Control Id="YesBtn" Type="PushButton" X="100" Y="55" Width="60" Height="20"
+                 Default="yes" Text="是">
+          <Publish Event="EndDialog" Value="Exit" />
+        </Control>
+        <Control Id="NoBtn" Type="PushButton" X="170" Y="55" Width="60" Height="20" Text="否">
+          <Publish Event="EndDialog" Value="Return" />
+        </Control>
+      </Dialog>
+
+      <Dialog Id="ExitDialog" Width="440" Height="130" Title="[ProductName] 安装程序">
+        <Control Id="DoneText" Type="Text" X="20" Y="30" Width="400" Height="24"
+                 Text="TaoDBM 安装完成，桌面或开始菜单即可打开。" />
+        <Control Id="FinishBtn" Type="PushButton" X="350" Y="95" Width="70" Height="22"
+                 Default="yes" Text="完成">
+          <Publish Event="EndDialog" Value="Return" />
+        </Control>
+      </Dialog>
+      <Dialog Id="UserExitDlg" Width="440" Height="130" Title="[ProductName] 安装程序">
+        <Control Id="UserExitText" Type="Text" X="20" Y="30" Width="400" Height="24"
+                 Text="安装已取消，本机未做任何更改。" />
+        <Control Id="FinishBtn" Type="PushButton" X="350" Y="95" Width="70" Height="22"
+                 Default="yes" Text="完成">
+          <Publish Event="EndDialog" Value="Return" />
+        </Control>
+      </Dialog>
+      <Dialog Id="FatalErrorDlg" Width="440" Height="130" Title="[ProductName] 安装程序">
+        <Control Id="ErrorText" Type="Text" X="20" Y="30" Width="400" Height="24"
+                 Text="安装未完成，请重试或联系开发者。" />
+        <Control Id="FinishBtn" Type="PushButton" X="350" Y="95" Width="70" Height="22"
+                 Default="yes" Text="完成">
+          <Publish Event="EndDialog" Value="Return" />
+        </Control>
+      </Dialog>
+
+      <InstallUISequence>
+        <!-- 默认装 D 盘：CostFinalize 前对 INSTALLFOLDER 赋绝对值（UI 与执行序列各挂一次，序号 1150 避开 MigrateFeatureStates）；值必须以目录分隔符结尾（MSI 官方规则：自定义动作设置的目录属性可能不带尾分隔符，快捷方式 Target 拼接会黏连成坏路径） -->
+        <Custom Action="SetInstallFolderUI" Sequence="1150" />
+        <Show Dialog="MainDlg" Sequence="1250" />
+        <Show Dialog="ProgressDlg" Before="ExecuteAction" />
+        <Show Dialog="ExitDialog" OnExit="success" />
+        <Show Dialog="UserExitDlg" OnExit="cancel" />
+        <Show Dialog="FatalErrorDlg" OnExit="error" />
+      </InstallUISequence>
+    </UI>
+
+    <CustomAction Id="SetInstallFolderUI" Property="INSTALLFOLDER"
+                  Value="D:\Program Files\TaoDBM\" Execute="immediate" />
+    <CustomAction Id="SetInstallFolderExec" Property="INSTALLFOLDER"
+                  Value="D:\Program Files\TaoDBM\" Execute="immediate" />
+
+    <InstallExecuteSequence>
+      <Custom Action="KillRunningApp" After="InstallValidate" />
+      <Custom Action="SetInstallFolderExec" Sequence="1150" />
+    </InstallExecuteSequence>
+
+    <StandardDirectory Id="DesktopFolder" />
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="StartMenuDir" Name="TaoDBM" />
+    </StandardDirectory>
+
+    <StandardDirectory Id="ProgramFiles6432Folder">
+      <!-- 默认安装到 D:\Program Files\TaoDBM：盘符由下方 Type-51 CustomAction 在
+           CostFinalize 前赋绝对值实现（WiX 目录 Name 不允许绝对路径；安装界面仍可改；
+           MSI 按已装路径升级不迁移） -->
+      <Directory Id="INSTALLFOLDER" Name="TaoDBM">
+        <Component Id="PathEnv" Guid="9C3D7E52-1A64-4F02-B8E9-3D5A7C6E4B12">
+          <Environment Id="APP_PATH_ENV" Name="PATH" Value="[INSTALLFOLDER]"
+                       Permanent="no" Part="last" Action="set" System="yes" />
+          <RegistryValue Root="HKLM" Key="Software\TaoDBM" Name="PathEnv"
+                         Type="integer" Value="1" KeyPath="yes" />
+        </Component>
+        <Component Id="AppReg" Guid="4E7B2C90-6D15-43A8-8F3B-9A1C5E7D2B48">
+          <RegistryValue Root="HKLM" Key="Software\TaoDBM" Name="InstallDir"
+                         Value="[INSTALLFOLDER]" Type="string" KeyPath="yes" />
+        </Component>
+      </Directory>
+    </StandardDirectory>
+
+    <Feature Id="Core" Title="TaoDBM 主程序" Description="程序本体与全部数据库驱动（必装）"
+             Level="1" AllowAbsent="no">
+      <ComponentGroupRef Id="PublishComponents" />
+      <ComponentRef Id="AppReg" />
+    </Feature>
+    <Feature Id="DeskShortcutF" Title="创建桌面快捷方式" Level="1">
+      <ComponentRef Id="DesktopShortcut" />
+    </Feature>
+    <Feature Id="MenuShortcutF" Title="创建开始菜单快捷方式" Level="1">
+      <ComponentRef Id="StartMenuShortcut" />
+    </Feature>
+    <Feature Id="PathEnvF" Title="添加到系统 PATH" Level="1">
+      <ComponentRef Id="PathEnv" />
+    </Feature>
+
+    <Component Id="DesktopShortcut" Directory="DesktopFolder" Guid="2B4C5D6E-7F80-4A92-B3C4-D5E6F7090301">
+      <RegistryValue Root="HKCU" Key="Software\TaoDBM" Name="DesktopShortcut"
+                     Type="integer" Value="1" KeyPath="yes" />
+      <Shortcut Id="DeskShortcut" Directory="DesktopFolder" Name="TaoDBM" Icon="TaoDBMIco"
+                Target="[INSTALLFOLDER]TaoDBM.exe" WorkingDirectory="INSTALLFOLDER" />
+    </Component>
+    <Component Id="StartMenuShortcut" Directory="StartMenuDir" Guid="5D8E3F91-2B75-4C04-9E6A-7F2B8D3C5A16">
+      <RegistryValue Root="HKCU" Key="Software\TaoDBM" Name="StartMenuShortcut"
+                     Type="integer" Value="1" KeyPath="yes" />
+      <RemoveFolder Id="RemoveStartMenuDir" On="uninstall" />
+      <Shortcut Id="MenuShortcut" Directory="StartMenuDir" Name="TaoDBM" Icon="TaoDBMIco"
+                Target="[INSTALLFOLDER]TaoDBM.exe" WorkingDirectory="INSTALLFOLDER" />
+    </Component>
+
+  </Package>
+
+  <Fragment>
+    <ComponentGroup Id="PublishComponents">
+      <Files Include="$(PublishDir)\**" Directory="INSTALLFOLDER" />
+    </ComponentGroup>
+  </Fragment>
+</Wix>
