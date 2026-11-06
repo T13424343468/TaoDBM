@@ -19,7 +19,7 @@ jobs:
           dotnet-version: 8.0.x
 
       - name: 编译主程序（WinUI 界面层，Windows 真环境）
-        run: dotnet build src/TaoDBM/TaoDBM.csproj -c Release
+        run: dotnet build src/TaoDBM/TaoDBM.csproj -c Release -p:Platform=x64
 
       - name: 运行逻辑层全测
         run: dotnet run --project logictest/logictest.csproj -c Release
