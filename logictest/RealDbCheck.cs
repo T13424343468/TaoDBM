@@ -120,11 +120,14 @@ public static class RealDbCheck
             check("[MONGO] 真连：写入 2 文档", n == 2, $"{n}");
             check("[MONGO] 真连：集合出现在子树", mongo.GetChildren("taodbm_ci").Result.Contains("t_zy_real"), "");
             var br = mongo.Browse("taodbm_ci", "t_zy_real", 0, 10).Result;
+            int idCol = br.Columns.IndexOf("_id"), docCol = br.Columns.IndexOf("(document)");
+            var byId = br.Rows.ToDictionary(r => Convert.ToString(r[idCol])!, r => Convert.ToString(r[docCol])!);
+            var doc1 = MongoDB.Bson.Serialization.BsonSerializer.Deserialize<BsonDocument>(byId["k1"]);
+            var doc2 = MongoDB.Bson.Serialization.BsonSerializer.Deserialize<BsonDocument>(byId["k2"]);
             bool ok = br.TotalRows == 2 && br.Rows.Count == 2
-                && br.Columns.Contains("tag")
-                && br.Rows.Any(row => Convert.ToString(row[Array.IndexOf(br.Columns.ToArray(), "_id")]) == "k1")
-                && br.Rows.Any(row => Convert.ToString(row[br.Columns.ToList().IndexOf("tag")])!.Contains("道"));
-            check("[MONGO] 数据对比：读回逐字段核对", ok, $"total={br.TotalRows} rows={br.Rows.Count} cols=[{string.Join(",", br.Columns)}]");
+                && doc1["val"].ToDouble() == 3.14 && doc1["tag"].AsString == "道"
+                && doc2["val"].ToDouble() == 2.71 && doc2["tag"].AsString == "α";
+            check("[MONGO] 数据对比：读回逐字段核对", ok, $"total={br.TotalRows} rows={br.Rows.Count}");
             new MongoClient($"mongodb://{p.Host}:{p.Port}").GetDatabase("taodbm_ci").GetCollection<BsonDocument>("t_zy_real").DeleteMany(new BsonDocument());
             check("[MONGO] 真连：清理完成", true, "");
         }
