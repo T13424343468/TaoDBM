@@ -23,3 +23,15 @@ jobs:
 
       - name: 运行逻辑层全测
         run: dotnet run --project logictest/logictest.csproj -c Release
+
+      - name: 真人鼠标路径全链（坐标点击+键盘对照+关窗入托盘+日志核验）
+        shell: pwsh
+        run: ./tools/ci-realuser.ps1
+
+      - name: 上传真人操作证据
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: realuser-evidence
+          path: evidence/**
+          retention-days: 14
