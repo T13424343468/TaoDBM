@@ -8,6 +8,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Program.cs" />
+    <Compile Include="RealDbCheck.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)../src/TaoDBM/Core/QueryResult.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)../src/TaoDBM/Core/DbEngine.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)../src/TaoDBM/Core/ConnectionStore.cs" />

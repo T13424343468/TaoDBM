@@ -35,3 +35,80 @@ jobs:
           name: realuser-evidence
           path: evidence/**
           retention-days: 14
+
+  realdb-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: build-and-test
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: rootpw
+          MYSQL_DATABASE: taodbm_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -prootpw"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: pgpw
+          POSTGRES_DB: taodbm_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+      mssql:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          ACCEPT_EULA: Y
+          MSSQL_SA_PASSWORD: "YourStrong!Passw0rd"
+        ports:
+          - 1433:1433
+        options: >-
+          --health-cmd="/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P YourStrong!Passw0rd -Q 'SELECT 1'"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=20
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+      mongo:
+        image: mongo:7
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd="mongosh --quiet --eval 'db.runCommand({ ping: 1 }).ok'"
+          --health-interval=10s
+          --health-timeout=10s
+          --health-retries=10
+    env:
+      DBM_REALDB_MYSQL: "127.0.0.1|3306|root|rootpw|taodbm_test"
+      DBM_REALDB_PG: "127.0.0.1|5432|postgres|pgpw|taodbm_test"
+      DBM_REALDB_MSSQL: "127.0.0.1|1433|sa|YourStrong!Passw0rd|master"
+      DBM_REALDB_REDIS: "127.0.0.1|6379"
+      DBM_REALDB_MONGO: "127.0.0.1|27017"
+    steps:
+      - name: 检出源码
+        uses: actions/checkout@v4
+
+      - name: 安装 .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: 真连数据库全测（MySQL/PG/MSSQL/Mongo/Redis，逐字段数据对比）
+        run: dotnet run --project logictest/logictest.csproj -c Release

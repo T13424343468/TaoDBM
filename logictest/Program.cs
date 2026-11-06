@@ -1372,6 +1372,8 @@ Layer("万链");
         violations == 0 && totalAsserts >= ChainCount,
         $"断言 {totalAsserts} 条，违规 {violations}，耗时 {sw.Elapsed.TotalSeconds:0.0}s");
     Console.WriteLine($"  （万链归账：{ChainCount} 链 / {ChainCount * StepsPerChain} 步 / 断言 {totalAsserts} 条 / 违规 {violations} / 耗时 {sw.Elapsed.TotalSeconds:0.0}s）");
+
+RealDbCheck.Run(Check);
 }
 
 Console.WriteLine("\n== 分层结果 ==");
