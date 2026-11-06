@@ -1,0 +1,25 @@
+name: Windows 云端全测
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    runs-on: windows-latest
+    timeout-minutes: 40
+    steps:
+      - name: 检出源码
+        uses: actions/checkout@v4
+
+      - name: 安装 .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: 编译主程序（WinUI 界面层，Windows 真环境）
+        run: dotnet build src/TaoDBM/TaoDBM.csproj -c Release
+
+      - name: 运行逻辑层全测
+        run: dotnet run --project logictest/logictest.csproj -c Release
