@@ -36,7 +36,12 @@ public static class ProfileCrypto
             var enc = System.Security.Cryptography.ProtectedData.Protect(data, Entropy, System.Security.Cryptography.DataProtectionScope.LocalMachine);
             return "dpapi:" + Convert.ToBase64String(enc);
         }
-        catch { return plain; }
+        catch
+        {
+            // L7 安全铁律：密码不明文落盘（docs/01-REQUIREMENTS.md）。加密失败时宁可返回空串
+            // 让用户下次连接重输，绝不静默回退明文（原实现 catch 后回明文，属安全缺陷，2026-11-13 修）。
+            return "";
+        }
     }
 
     public static string Unprotect(string stored)

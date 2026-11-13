@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("logictest")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+87d9b53c014518855cf432a009a5b478fc4717a5")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+ffc191210fda2b189ad50716f9d0cb38c53c8864")]
 [assembly: System.Reflection.AssemblyProductAttribute("logictest")]
 [assembly: System.Reflection.AssemblyTitleAttribute("logictest")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

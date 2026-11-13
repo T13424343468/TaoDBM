@@ -262,6 +262,87 @@ Console.WriteLine("== BackupTools ==");
     Check("SqlServer 单引号转义", BackupTools.SqlServerBackupSql("db", "d:\\o'brien.bak").Contains("'d:\\o''brien.bak'"));
 }
 
+Console.WriteLine("== L6 恶意与极端输入 + L7 凭据零明文 ==");
+{
+    // ---- A. ConnectionStore / ProfileCrypto（L7 安全）----
+    string connFile = TaoPaths.FilePath("connections.json");
+    string? origConn = System.IO.File.Exists(connFile) ? System.IO.File.ReadAllText(connFile) : null;
+    try
+    {
+        const string secret = "S3cret-P@ss-明文";
+        var p = new ConnectionProfile
+        {
+            DisplayName = "测\"连\"接/特殊<名>", User = "u'm'e", Database = "db;drop",
+            Host = "127.0.0.1", Port = 3306, Password = secret, SavePassword = true,
+        };
+        var protectedOne = ProfileCrypto.Protect(secret);
+        Check("L7 加密失败不回明文", protectedOne != secret && (protectedOne == "" || protectedOne.StartsWith("dpapi:")),
+            protectedOne == secret ? "回退明文" : protectedOne == "" ? "空串(平台无DPAPI)" : "dpapi密文");
+
+        ConnectionStore.Save(new List<ConnectionProfile> { p });
+        var onDisk = System.IO.File.ReadAllText(connFile);
+        Check("L7 落盘文件零明文密码", !onDisk.Contains(secret), onDisk.Contains(secret) ? "发现明文" : "");
+
+        var back = ConnectionStore.Load();
+        var got = back.FirstOrDefault(x => x.Id == p.Id);
+        Check("L7 不存密码读回为空", got != null && got.Password == "", got?.Password ?? "missing");
+        Check("特殊字符字段往返一致", got != null && got.DisplayName == p.DisplayName && got.User == p.User && got.Database == p.Database,
+            got == null ? "missing" : $"{got.DisplayName}|{got.User}|{got.Database}");
+
+        var p2 = new ConnectionProfile { DisplayName = "不存密码", Password = secret, SavePassword = false };
+        ConnectionStore.Save(new List<ConnectionProfile> { p2 });
+        var onDisk2 = System.IO.File.ReadAllText(connFile);
+        Check("L7 不存密码落盘为空", !onDisk2.Contains(secret), onDisk2.Contains(secret) ? "发现明文" : "");
+        Check("不存密码读回为空", ConnectionStore.Load().First(x => x.Id == p2.Id).Password == "");
+
+        System.IO.File.WriteAllText(connFile, "{{{不是JSON");
+        Check("损坏配置文件回落空列表", ConnectionStore.Load().Count == 0);
+    }
+    finally
+    {
+        if (origConn != null) System.IO.File.WriteAllText(connFile, origConn);
+        else if (System.IO.File.Exists(connFile)) System.IO.File.Delete(connFile);
+    }
+
+    // ---- B. CsvImporter 恶意极端输入 ----
+    var emptyCsv = CsvImporter.Parse("");
+    Check("CSV 空串输入", emptyCsv.Headers.Count == 0 && emptyCsv.Rows.Count == 0);
+    var unclosed = CsvImporter.Parse("h1,h2\na,\"未闭合");
+    Check("CSV 未闭合引号不崩", unclosed.Headers.Count == 2 && unclosed.Rows.Count == 1 && unclosed.Rows[0][0] == "a", string.Join("|", unclosed.Rows.Select(r => string.Join(";", r))));
+    var crOnly = CsvImporter.Parse("h1,h2\r1,2\r3,4");
+    Check("CSV 孤立 CR 换行", crOnly.Rows.Count == 2, crOnly.Rows.Count.ToString());
+    var bigField = new string('X', 1_000_000);
+    var bigCsv = CsvImporter.Parse("h\n" + bigField);
+    Check("CSV 百万字符单字段", bigCsv.Rows.Count == 1 && bigCsv.Rows[0][0] == bigField);
+    var manyCols = "h," + string.Join(",", Enumerable.Range(1, 999).Select(i => "c" + i)) + "\nv1";
+    var manyParsed = CsvImporter.Parse(manyCols);
+    Check("CSV 千列表头对齐", manyParsed.Headers.Count == 1000 && manyParsed.Rows.Count == 1 && manyParsed.Rows[0][999] == null, $"{manyParsed.Headers.Count}列/{manyParsed.Rows[0].Length}值");
+    {
+        var cols = new List<ColumnSpec> { new() { Name = "id", DataType = "INT" }, new() { Name = "note", DataType = "VARCHAR" } };
+        var stmts = CsvImporter.BuildInserts(new TestProv(), "db", "t", cols,
+            new List<string> { "id", "note" },
+            new List<string?[]> { new string?[] { "12; DROP TABLE x", "O'Brien" } });
+        Check("数字列非数字值引号转义防注入", stmts[0].Contains("'12; DROP TABLE x'") && stmts[0].Contains("'O''Brien'"), stmts[0]);
+    }
+
+    // ---- C. SqlSplitter 恶意极端输入 ----
+    Check("脚本只有分号", SqlSplitter.Split(";; ;").Count == 0);
+    var unclosedQuote = SqlSplitter.Split("SELECT 'a");
+    Check("未闭合引号原样单条", unclosedQuote.Count == 1 && unclosedQuote[0] == "SELECT 'a", string.Join("|", unclosedQuote));
+    var deepComment = SqlSplitter.Split("/* /* /* /* never closed");
+    Check("深层未闭合块注释单条", deepComment.Count == 1 && deepComment[0].StartsWith("/* /*"));
+    var massParts = SqlSplitter.Split(string.Join("", Enumerable.Range(0, 10_000).Select(i => $"SELECT {i};")));
+    Check("万条语句拆分无丢", massParts.Count == 10_000 && massParts[9999] == "SELECT 9999", massParts.Count.ToString());
+
+    // ---- D. JsonImporter 恶意极端输入 ----
+    var badJson = JsonImporter.Parse("[oops");
+    Check("JSON 非法数组回落空", badJson.Headers.Count == 0 && badJson.Rows.Count == 0);
+    var mixedJsonl = JsonImporter.Parse("{\"a\":\"1\"}\n不是JSON行\n{\"a\":\"2\"}");
+    Check("JSONL 畸形行跳过", mixedJsonl.Rows.Count == 2 && mixedJsonl.Rows[1][0] == "2", string.Join("|", mixedJsonl.Rows.Select(r => string.Join(";", r))));
+    var loneSurrogate = JsonImporter.Parse("[\"\\ud800\"]");
+    Check("未配对代理对不崩", loneSurrogate.Headers.Count == 0 && loneSurrogate.Rows.Count == 0);
+}
+
 Console.WriteLine("== Favorites / TabSession ==");
 {
     var dir = Path.Combine(Path.GetTempPath(), "taodbm-test-" + Guid.NewGuid().ToString("N"));
