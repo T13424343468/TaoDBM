@@ -33,8 +33,11 @@ public static class ProfileCrypto
         try
         {
             var data = System.Text.Encoding.UTF8.GetBytes(plain);
+            // 非 Windows 平台此调用抛 PlatformNotSupportedException，由 catch 统一回落空串，属预期路径
+#pragma warning disable CA1416
             var enc = System.Security.Cryptography.ProtectedData.Protect(data, Entropy, System.Security.Cryptography.DataProtectionScope.LocalMachine);
             return "dpapi:" + Convert.ToBase64String(enc);
+#pragma warning restore CA1416
         }
         catch
         {
@@ -51,8 +54,10 @@ public static class ProfileCrypto
         try
         {
             var enc = Convert.FromBase64String(stored["dpapi:".Length..]);
+#pragma warning disable CA1416
             var dec = System.Security.Cryptography.ProtectedData.Unprotect(enc, Entropy, System.Security.Cryptography.DataProtectionScope.LocalMachine);
             return System.Text.Encoding.UTF8.GetString(dec);
+#pragma warning restore CA1416
         }
         catch { return ""; }
     }

@@ -285,7 +285,14 @@ Console.WriteLine("== L6 恶意与极端输入 + L7 凭据零明文 ==");
 
         var back = ConnectionStore.Load();
         var got = back.FirstOrDefault(x => x.Id == p.Id);
-        Check("L7 不存密码读回为空", got != null && got.Password == "", got?.Password ?? "missing");
+        // 读回语义（2026-11-13 修）：安全不变量只在磁盘——零明文、密文带 dpapi: 前缀；
+        // 平台支持 DPAPI 时读回按密文还原原文（应用重连需要），不支持时落盘即空、读回为空。
+        // 原断言把“读回是明文”误判为残留，实际是 DPAPI 正常解密，在 Windows 云端必假。
+        bool hasDpapi = protectedOne.StartsWith("dpapi:", StringComparison.Ordinal);
+        Check("L7 读回按密文还原",
+            got != null && (hasDpapi ? got.Password == secret : got.Password == ""),
+            got == null ? "missing" : (hasDpapi ? (got.Password == secret ? "" : "有DPAPI未还原") : "无DPAPI仍返回值"));
+        Check("L7 落盘密文带前缀", !hasDpapi || onDisk.Contains("dpapi:"), "无 dpapi: 前缀");
         Check("特殊字符字段往返一致", got != null && got.DisplayName == p.DisplayName && got.User == p.User && got.Database == p.Database,
             got == null ? "missing" : $"{got.DisplayName}|{got.User}|{got.Database}");
 
@@ -1169,13 +1176,13 @@ Console.WriteLine("== Faker 语义推断 ==");
 
     var moneyCol = new ColumnCtx { Name = "amount", RawType = "DECIMAL(10,2)", Nullable = false, Scale = 2 };
     var mv = Faker.Gen(SemanticKind.Money, moneyCol, new Random(7), 1);
-    Check("金额两位小数", mv is decimal d && decimal.Round(d, 2) == d, mv?.ToString());
+    Check("金额两位小数", mv is decimal d && decimal.Round(d, 2) == d, mv?.ToString() ?? "");
     var dtCol = new ColumnCtx { Name = "created_at", RawType = "DATETIME", Nullable = false };
     var dv = Faker.Gen(SemanticKind.DateTime, dtCol, new Random(9), 1) as string ?? "";
     Check("日期格式", System.Text.RegularExpressions.Regex.IsMatch(dv, @"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$"), dv);
     var bCol = new ColumnCtx { Name = "is_enabled", RawType = "TINYINT(1)", Nullable = false };
     var bv = Faker.Gen(SemanticKind.Boolean, bCol, new Random(3), 1);
-    Check("布尔 0/1", bv is int i && i is 0 or 1, bv?.ToString());
+    Check("布尔 0/1", bv is int i && i is 0 or 1, bv?.ToString() ?? "");
     var eCol = new ColumnCtx { Name = "gender", RawType = "ENUM('男','女')", Nullable = false, EnumValues = Faker.ParseEnumValues("ENUM('男','女')") };
     var ev = Faker.Gen(SemanticKind.Gender, eCol, new Random(5), 1) as string ?? "";
     Check("枚举取值合法", ev is "男" or "女", ev);
@@ -1197,7 +1204,7 @@ Console.WriteLine("== Faker 语义推断 ==");
     Check("非空列不出 NULL", !anyNull);
     var poolCol = new ColumnCtx { Name = "user_id", RawType = "BIGINT", Nullable = false, IsPrimaryKey = false };
     var pv2 = Faker.Gen(SemanticKind.Id, poolCol, new Random(31), 1, poolValue: "88");
-    Check("关联列取池值", pv2 as string == "88", pv2?.ToString());
+    Check("关联列取池值", pv2 as string == "88", pv2?.ToString() ?? "");
 }
 {
     // 万行零异常 + 断言规模（暴力）
