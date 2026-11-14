@@ -51,17 +51,6 @@ public partial class MainWindow : Window
         BtnTheme.Flyout.PinTheme();
         UpdateThemeChecks();
         var trayIcoPath = System.IO.Path.Combine(AppContext.BaseDirectory, "Assets", "TaoDBM.ico");
-        try
-        {
-            var iconPath = System.IO.Path.Combine(AppContext.BaseDirectory, "Assets", "TaoDBM.png");
-            if (System.IO.File.Exists(iconPath))
-            {
-                var bmp = new Microsoft.UI.Xaml.Media.Imaging.BitmapImage(new Uri(iconPath));
-                LogoImg.Source = bmp;
-            }
-            if (System.IO.File.Exists(trayIcoPath))
-                AppWindow.SetIcon(trayIcoPath);
-        }
         Safe.Run(() =>
         {
             var iconPath = System.IO.Path.Combine(AppContext.BaseDirectory, "Assets", "TaoDBM.png");
@@ -72,7 +61,8 @@ public partial class MainWindow : Window
             }
             if (System.IO.File.Exists(trayIcoPath))
                 AppWindow.SetIcon(trayIcoPath);
-        }, "窗口图标");（2026-11-03 真机二轮反馈）：图标缺失时 TrayIcon 内部回落系统图标，
+        }, "窗口图标");
+        // 托盘创建不再以图标文件存在为前提（2026-11-03 真机二轮反馈）：图标缺失时 TrayIcon 内部回落系统图标，
         // 绝不因资源缺失整段静默跳过导致托盘整个没有。
         try { StartTray(trayIcoPath); }
         catch (Exception ex) { Core.AppLog.Write($"托盘: 创建异常 {ex.Message}"); }

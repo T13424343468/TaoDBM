@@ -12,7 +12,7 @@ public static class AtomicWrite
     public static void Text(string path, string content)
     {
         var dir = Path.GetDirectoryName(path);
-        if (dir.Length > 0) Directory.CreateDirectory(dir);
+        if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
         var tmp = path + ".tmp";
         using (var fs = new FileStream(tmp, FileMode.Create, FileAccess.Write, FileShare.None))
         using (var w = new StreamWriter(fs) { AutoFlush = false })

@@ -31,7 +31,7 @@ public partial class App : Application
             Shell.Closed += (_, _) =>
             {
                 Current.Exit();
-                Task.Run(() => Safe.CleanupAsync(async () =>
+                Task.Run(() => Core.Safe.CleanupAsync(async () =>
                 {
                     await Task.Delay(1000);
                     Environment.Exit(0);
