@@ -36,6 +36,67 @@ jobs:
           path: evidence/**
           retention-days: 14
 
+  msi-package:
+    name: MSI 打包 + 静默装卸链（老板 2026-11-14 17:08 令：21:00 前真机通过交付）
+    runs-on: windows-latest
+    timeout-minutes: 30
+    needs: build-and-test
+    steps:
+      - name: 检出源码
+        uses: actions/checkout@v4
+
+      - name: 安装 .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: 安装 WiX 5.0.2
+        run: dotnet tool install --global wix --version 5.0.2
+        shell: pwsh
+
+      - name: 发布程序（自包含）
+        run: |
+          dotnet publish src/TaoDBM/TaoDBM.csproj -c Release -p:Platform=x64 -r win-x64 --self-contained true -p:WindowsAppSDKSelfContained=true
+          if (-not (Test-Path "src/TaoDBM/bin/x64/Release/net8.0-windows10.0.19041.0/win-x64/publish/TaoDBM.exe")) { Write-Host "[ERROR] publish payload missing"; exit 1 }
+        shell: pwsh
+
+      - name: 构建 MSI（唯一安装交付形态，复用 build-installer.bat 同一口径）
+        run: |
+          if (Test-Path out) { Remove-Item -Recurse -Force out }
+          wix build src/Installer/Package.wxs -arch x64 -d PublishDir="src\TaoDBM\bin\x64\Release\net8.0-windows10.0.19041.0\win-x64\publish" -o "out/TaoDBM-1.0.8-x64.msi"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $msis = Get-ChildItem out -Filter *.msi
+          if ($msis.Count -ne 1) { throw "out 里 msi 数量不对: $($msis.Count)" }
+          Write-Host "[HASH] SHA256: $((Get-FileHash $msis[0].FullName -Algorithm SHA256).Hash)"
+        shell: pwsh
+
+      - name: 静默安装 -> 校验 -> 卸载 -> 校验无残留
+        run: |
+          $msi = (Resolve-Path out/*.msi).Path
+          $p1 = Start-Process msiexec -ArgumentList "/i","`"$msi`"","/qn","/norestart","/l*v","install.log" -Wait -PassThru
+          Write-Host "[INSTALL] exit=$($p1.ExitCode)"
+          if ($p1.ExitCode -ne 0) { Get-Content install.log -Tail 30; exit 1 }
+          $arp = Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -like "*TaoDBM*" }
+          if (-not $arp) { Write-Host "[ERROR] no ARP entry after install"; exit 1 }
+          Write-Host "[OK] ARP entry: $($arp.DisplayName) $($arp.DisplayVersion)"
+          $p2 = Start-Process msiexec -ArgumentList "/x",$($arp.PSChildName),"/qn","/norestart","/l*v","uninstall.log" -Wait -PassThru
+          Write-Host "[UNINSTALL] exit=$($p2.ExitCode)"
+          if ($p2.ExitCode -ne 0) { Get-Content uninstall.log -Tail 30; exit 1 }
+          $arp2 = Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -like "*TaoDBM*" }
+          if ($arp2) { Write-Host "[ERROR] ARP residue after uninstall"; exit 1 }
+          Write-Host "[OK] uninstall clean"
+        shell: pwsh
+
+      - name: 上传安装包
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: taoDBM-msi
+          path: |
+            out/*.msi
+            install.log
+          retention-days: 14
+
   realdb-tests:
     runs-on: ubuntu-latest
     timeout-minutes: 30
