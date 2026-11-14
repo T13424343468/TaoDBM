@@ -1,4 +1,4 @@
-namespace TaoDBM.Core.Streaming;
+﻿namespace TaoDBM.Core.Streaming;
 
 /// <summary>一页流式结果：本页数据与是否还有更多可取。</summary>
 public sealed class QueryPage

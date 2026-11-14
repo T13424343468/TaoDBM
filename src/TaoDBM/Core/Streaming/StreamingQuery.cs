@@ -1,4 +1,4 @@
-using System.Data.Common;
+﻿using System.Data.Common;
 
 namespace TaoDBM.Core.Streaming;
 
@@ -13,6 +13,7 @@ public sealed class StreamingQuery : IAsyncDisposable
     private readonly DbDataReader? _reader;
     private readonly IReadOnlyList<string> _columns;
     private readonly long? _totalEstimate;
+    private object[]? _pending;
 
     public string QueryId { get; }
 
@@ -59,14 +60,22 @@ public sealed class StreamingQuery : IAsyncDisposable
     public async ValueTask<QueryPage> NextPageAsync(int size, CancellationToken ct)
     {
         if (_reader is null) return QueryPage.Empty;
-        var rows = new List<object?[]>(size);
+        var rows = new List<object[]>(size);
+        if (_pending is not null) { rows.Add(_pending); _pending = null; }
         while (rows.Count < size && await _reader.ReadAsync(ct))
         {
             var row = new object[_reader.FieldCount];
             _reader.GetValues(row);
             rows.Add(row);
         }
-        return new QueryPage { Rows = rows.Cast<object[]>().ToArray(), HasMore = rows.Count == size && await _reader.ReadAsync(ct) };
+        // 判断 HasMore 的预读行须缓存，否则下页首行被吞（已实测：500 行会少 2 行）
+        bool more = rows.Count == size && await _reader.ReadAsync(ct);
+        if (more)
+        {
+            _pending = new object[_reader.FieldCount];
+            _reader.GetValues(_pending);
+        }
+        return new QueryPage { Rows = rows.ToArray(), HasMore = more };
     }
 
     public async ValueTask DisposeAsync()

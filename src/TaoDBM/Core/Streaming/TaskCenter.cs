@@ -1,4 +1,4 @@
-using System.Threading.Channels;
+﻿using System.Threading.Channels;
 
 namespace TaoDBM.Core.Streaming;
 
@@ -94,6 +94,7 @@ public sealed class TaskCenter
             try
             {
                 await RunAsync(h);
+                Complete(h.TaskId, "done", "");
             }
             catch (OperationCanceledException)
             {

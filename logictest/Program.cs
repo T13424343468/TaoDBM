@@ -643,6 +643,70 @@ Layer("集成");
     Check("传输语句组合完整", create.Contains("CREATE TABLE") && sync.Count == 0 && ins.Count == 1 && ins[0].Contains("VALUES (7)"), create);
 }
 
+{
+    // 流式底座真库链路：SQLite 起临时表 → StreamingQuery 分页取数 → QueryRouter 整包同形返回 → TaskCenter 队列调度
+    var dbPath = Path.Combine(Path.GetTempPath(), "taodbm-stream-" + Guid.NewGuid().ToString("N") + ".db");
+    var profile = new ConnectionProfile { Engine = DbEngine.SQLite, DisplayName = "stream-smoke", Database = dbPath };
+    await using (Microsoft.Data.Sqlite.SqliteConnection setup = new($"Data Source={dbPath}"))
+    {
+        setup.Open();
+        using var cmd = setup.CreateCommand();
+        cmd.CommandText = "CREATE TABLE t(id INTEGER PRIMARY KEY, v TEXT);";
+        cmd.ExecuteNonQuery();
+        using var tx = setup.BeginTransaction();
+        for (int i = 1; i <= 500; i++)
+        {
+            using var one = setup.CreateCommand();
+            one.Transaction = tx;
+            one.CommandText = $"INSERT INTO t(v) VALUES ('v{i}')";
+            one.ExecuteNonQuery();
+        }
+        tx.Commit();
+    }
+    var prov = (TaoDBM.Core.RelationalProvider)ProviderFactory.Create(profile);
+    // 1) StreamingQuery 分页：500 行按 200/页 = 3 页（200+200+100）
+    {
+        await using var conn = prov.OpenStream(null);
+        await using var sq = await TaoDBM.Core.Streaming.StreamingQuery.StartAsync(conn, "SELECT id, v FROM t ORDER BY id", CancellationToken.None);
+        Check("流式列名", sq.Columns.SequenceEqual(new[] { "id", "v" }), string.Join(",", sq.Columns));
+        int total = 0, pages = 0;
+        while (true)
+        {
+            var page = await sq.NextPageAsync(200, CancellationToken.None);
+            total += page.Rows.Length; pages++;
+            foreach (var row in page.Rows) Check("流式行内值", row.Length == 2, "列数不对");
+            if (!page.HasMore) break;
+        }
+        Check("流式分页总数", total == 500, total.ToString());
+        Check("流式分页页数", pages == 3, pages.ToString());
+    }
+    // 2) QueryRouter 整包同形：与旧 Execute 返回同形 QueryResult，无 5000 截断
+    {
+        var rs = await TaoDBM.Core.Streaming.QueryRouter.ExecuteAsync(prov, null, "SELECT COUNT(*) AS n FROM t", CancellationToken.None);
+        Check("路由整包行数", rs.Count == 1 && rs[0].Rows.Count == 1, rs[0].Rows.Count.ToString());
+        Check("路由聚合值", Convert.ToInt64(rs[0].Rows[0][0]) == 500, rs[0].Rows[0][0]?.ToString() ?? "null");
+        Check("路由列名", rs[0].Columns[0] == "n", rs[0].Columns[0]);
+    }
+    // 3) StreamingSwitch 开关读环境变量（off 关流式）
+    Check("流式开关默认开", TaoDBM.Core.Streaming.StreamingSwitch.Enabled, "");
+    // 4) TaskCenter：提交→完成快照、取消
+    {
+        var tc = new TaoDBM.Core.Streaming.TaskCenter();
+        var ran = new TaskCompletionSource();
+        tc.Runner = h => { ran.TrySetResult(); return Task.CompletedTask; };
+        var h1 = tc.Submit(new TaoDBM.Core.Streaming.TaskSpec { Kind = "query", Title = "冒烟查询" });
+        await ran.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        var t0 = DateTime.UtcNow;
+        while (!tc.List().Any(s => s.TaskId == h1.TaskId && s.State == "done") && DateTime.UtcNow - t0 < TimeSpan.FromSeconds(5)) await Task.Delay(20);
+        Check("任务中心执行完成", tc.List().Any(s => s.TaskId == h1.TaskId && s.State == "done"), string.Join("|", tc.List().Select(s => s.State)));
+        Check("任务取消", tc.Cancel(h1.TaskId) == false, "done 后不可再取消");
+        var h2 = tc.Submit(new TaoDBM.Core.Streaming.TaskSpec { Title = "占位" });
+        Check("任务取消进行中", tc.Cancel(h2.TaskId), "");
+    }
+    File.Delete(dbPath);
+    Environment.SetEnvironmentVariable("DBM_STREAMING", null);
+}
+
 Layer("系统");
 {
     // 持久化完整工作流（临时目录）：收藏 + 会话 文件往返、损坏文件容错、失败路径不残留

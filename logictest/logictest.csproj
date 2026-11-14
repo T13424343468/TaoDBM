@@ -42,6 +42,8 @@
     <Compile Include="$(MSBuildThisFileDirectory)../src/TaoDBM/Core/Streaming/IQueryConsumer.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)../src/TaoDBM/Core/Streaming/StreamingQuery.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)../src/TaoDBM/Core/Streaming/TaskCenter.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)../src/TaoDBM/Core/Streaming/StreamingSwitch.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)../src/TaoDBM/Core/Streaming/QueryRouter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)../src/TaoDBM/UI/Exporter.cs" />
   </ItemGroup>
   <ItemGroup>
