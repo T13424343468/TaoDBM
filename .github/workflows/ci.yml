@@ -63,7 +63,12 @@ jobs:
       - name: 构建 MSI（唯一安装交付形态，复用 build-installer.bat 同一口径）
         run: |
           if (Test-Path out) { Remove-Item -Recurse -Force out }
-          wix build src/Installer/Package.wxs -arch x64 -d PublishDir="src\TaoDBM\bin\x64\Release\net8.0-windows10.0.19041.0\win-x64\publish" -o "out/TaoDBM-1.0.8-x64.msi"
+          $pub = Join-Path (Get-Location) "src\TaoDBM\bin\x64\Release\net8.0-windows10.0.19041.0\win-x64\publish"
+          $ico = Join-Path (Get-Location) "src\TaoDBM\Assets\TaoDBM.ico"
+          if (-not (Test-Path $ico)) { Write-Host "[ERROR] icon missing: $ico"; exit 1 }
+          # v2：绝对路径传参——WiX 对 SourceFile 与 Files Include 的相对解析基准不同
+          # （run 43579338702 实锤：Icon 按 CWD 解析、Harvest 按 wxs 目录解析，双红同修）
+          wix build src/Installer/Package.wxs -arch x64 -d PublishDir="$pub" -d IconSource="$ico" -o "out/TaoDBM-1.0.8-x64.msi"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           $msis = Get-ChildItem out -Filter *.msi
           if ($msis.Count -ne 1) { throw "out 里 msi 数量不对: $($msis.Count)" }

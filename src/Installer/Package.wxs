@@ -12,7 +12,7 @@
     <MajorUpgrade DowngradeErrorMessage="已安装了更新版本的 TaoDBM，如需重装请先在“应用”中卸载。" AllowSameVersionUpgrades="yes" />
     <MediaTemplate EmbedCab="yes" />
     <!-- 卸载列表图标：设置-应用/软件管理里显示 TaoDBM 自己的图标 -->
-    <Icon Id="TaoDBMIco" SourceFile="..\TaoDBM\Assets\TaoDBM.ico" />
+    <Icon Id="TaoDBMIco" SourceFile="$(IconSource)" />
     <Property Id="ARPPRODUCTICON" Value="TaoDBMIco" />
 
     <Property Id="ARPNOREPAIR" Value="1" />
