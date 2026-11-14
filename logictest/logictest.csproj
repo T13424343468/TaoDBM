@@ -20,6 +20,8 @@
     <Compile Include="$(MSBuildThisFileDirectory)../src/TaoDBM/Core/TabSession.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)../src/TaoDBM/Core/ThemePalette.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)../src/TaoDBM/Core/TaoPaths.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)../src/TaoDBM/Core/Safe.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)../src/TaoDBM/Core/AtomicWrite.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)../src/TaoDBM/Core/AppLog.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)../src/TaoDBM/Core/ThemeStore.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)../src/TaoDBM/Core/AppPrefs.cs" />

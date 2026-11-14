@@ -26,7 +26,7 @@ public static class SshTunnel
             // 旧隧道失效则清理重建
             if (_active.TryGetValue(p.Id, out var old))
             {
-                try { old.Port.Stop(); old.Client.Disconnect(); old.Client.Dispose(); } catch { }
+                Safe.Cleanup(() => { old.Port.Stop(); old.Client.Disconnect(); old.Client.Dispose(); }, "SSH隧道失效清理");
                 _active.Remove(p.Id);
             }
 
@@ -50,7 +50,7 @@ public static class SshTunnel
         lock (_gate)
         {
             if (!_active.TryGetValue(id, out var t)) return;
-            try { t.Port.Stop(); t.Client.Disconnect(); t.Client.Dispose(); } catch { }
+            Safe.Cleanup(() => { t.Port.Stop(); t.Client.Disconnect(); t.Client.Dispose(); }, "SSH隧道关闭");
             _active.Remove(id);
         }
     }
@@ -62,7 +62,7 @@ public static class SshTunnel
         {
             foreach (var (_, (c, f)) in _active)
             {
-                try { f.Stop(); c.Disconnect(); c.Dispose(); } catch { }
+                Safe.Cleanup(() => { f.Stop(); c.Disconnect(); c.Dispose(); }, "SSH隧道全量关闭");
             }
             _active.Clear();
         }

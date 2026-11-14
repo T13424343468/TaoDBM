@@ -31,11 +31,11 @@ public partial class App : Application
             Shell.Closed += (_, _) =>
             {
                 Current.Exit();
-                Task.Run(async () =>
+                Task.Run(() => Safe.CleanupAsync(async () =>
                 {
-                    try { await Task.Delay(1000); Environment.Exit(0); }
-                    catch { }
-                });
+                    await Task.Delay(1000);
+                    Environment.Exit(0);
+                }, "退出强杀兜底"));
             };
             Shell.Activate();
         }

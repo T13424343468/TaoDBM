@@ -63,7 +63,7 @@ public static class QueryHistory
         try
         {
             var opt = new JsonSerializerOptions { WriteIndented = true, Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
-            System.IO.File.WriteAllText(File, JsonSerializer.Serialize(_items, opt));
+            AtomicWrite.Text(File, JsonSerializer.Serialize(_items, opt));
         }
         catch { /* 历史保存失败不影响主流程 */ }
     }

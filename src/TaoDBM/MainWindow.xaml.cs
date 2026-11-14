@@ -62,8 +62,17 @@ public partial class MainWindow : Window
             if (System.IO.File.Exists(trayIcoPath))
                 AppWindow.SetIcon(trayIcoPath);
         }
-        catch { }
-        // 托盘创建不再以图标文件存在为前提（2026-11-03 真机二轮反馈）：图标缺失时 TrayIcon 内部回落系统图标，
+        Safe.Run(() =>
+        {
+            var iconPath = System.IO.Path.Combine(AppContext.BaseDirectory, "Assets", "TaoDBM.png");
+            if (System.IO.File.Exists(iconPath))
+            {
+                var bmp = new Microsoft.UI.Xaml.Media.Imaging.BitmapImage(new Uri(iconPath));
+                LogoImg.Source = bmp;
+            }
+            if (System.IO.File.Exists(trayIcoPath))
+                AppWindow.SetIcon(trayIcoPath);
+        }, "窗口图标");（2026-11-03 真机二轮反馈）：图标缺失时 TrayIcon 内部回落系统图标，
         // 绝不因资源缺失整段静默跳过导致托盘整个没有。
         try { StartTray(trayIcoPath); }
         catch (Exception ex) { Core.AppLog.Write($"托盘: 创建异常 {ex.Message}"); }
@@ -269,7 +278,7 @@ public partial class MainWindow : Window
     /// <summary>非客户区随象而染：系统标题栏与三颗门钮钉成当前主题色（TaoZip v60 教训）。</summary>
     private void PinTitleBar(IReadOnlyDictionary<string, string> pal)
     {
-        try
+        Safe.Run(() =>
         {
             var bar = AppWindow.TitleBar;
             bar.BackgroundColor = UI.Ant.Brush(pal["AntHeadBg"]).Color;
@@ -278,8 +287,7 @@ public partial class MainWindow : Window
             bar.ButtonForegroundColor = UI.Ant.Brush(pal["AntText"]).Color;
             bar.ButtonHoverBackgroundColor = UI.Ant.Brush(pal["AntBorder"]).Color;
             bar.ButtonHoverForegroundColor = UI.Ant.Brush(pal["AntText"]).Color;
-        }
-        catch { }
+        }, "标题栏配色");
     }
 
     /// <summary>客户区根元素重钉系统明暗象：内容对话框、菜单、下拉、输入框等系统控件随象而染
@@ -296,14 +304,13 @@ public partial class MainWindow : Window
     /// <summary>切主题：改画刷颜色即时全窗口生效，选择持久化（Tao 系列水墨默认）。</summary>
     private void SwitchTheme(string name)
     {
-        try
+        Safe.Run(() =>
         {
             UI.Ant.ApplyTheme(name);
             Core.ThemeStore.Save(name);
             SetStatus(name switch { "gray" => "主题：天青", "night" => "主题：墨夜", _ => "主题：水墨" });
             UpdateThemeChecks();
-        }
-        catch { }
+        }, "切主题");
     }
 
     /// <summary>主题菜单对勾随象刷新（TaoPad 同款：当前主题项左侧带勾选）。</summary>
@@ -668,7 +675,7 @@ public partial class MainWindow : Window
     /// <summary>把当前打开的工作标签写盘（连接已删的自动剔除）。</summary>
     private void SaveSession()
     {
-        try
+        Safe.Run(() =>
         {
             var items = _workTabs.Values.Select(t => new TabSessionItem
             {
@@ -679,14 +686,13 @@ public partial class MainWindow : Window
                 Sql = t.SessionSql,
             }).ToList();
             TabSession.Save(TabSession.FilterValid(items, _profiles));
-        }
-        catch { }
+        }, "会话保存");
     }
 
     /// <summary>启动时恢复上次的查询标签（表数据页不自动恢复，避免启动即连库）。</summary>
     private void RestoreSession()
     {
-        try
+        Safe.Run(() =>
         {
             foreach (var item in TabSession.FilterValid(TabSession.Load(), _profiles))
             {
@@ -700,8 +706,7 @@ public partial class MainWindow : Window
                 WorkTabs.TabItems.Add(tab);
                 _workTabs[tab] = wt;
             }
-        }
-        catch { }
+        }, "会话恢复");
     }
 
     // ---------- 对话框辅助 ----------

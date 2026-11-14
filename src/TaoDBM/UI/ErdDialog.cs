@@ -60,13 +60,12 @@ public static class ErdDialog
         };
         if (connBox.SelectedItem is ConnectionProfile selP)
         {
-            try
+            await Safe.RunAsync(async () =>
             {
                 using var prov0 = ProviderFactory.Create(selP);
                 foreach (var d in await prov0.GetDatabases()) dbBox.Items.Add(d);
                 if (dbBox.Items.Count > 0) dbBox.SelectedIndex = 0;
-            }
-            catch { }
+            }, "ER图默认库列表");
         }
 
         var genBtn = new Button { Content = "生成 ER 图", CornerRadius = new CornerRadius(4) };

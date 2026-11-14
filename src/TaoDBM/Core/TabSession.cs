@@ -37,7 +37,7 @@ public static class TabSession
     public static void Save(List<TabSessionItem> items)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(File)!);
-        System.IO.File.WriteAllText(File, JsonSerializer.Serialize(items, Opt));
+        AtomicWrite.Text(File, JsonSerializer.Serialize(items, Opt));
     }
 
     /// <summary>按当前连接集合过滤：连接已删除的标签不再恢复。</summary>

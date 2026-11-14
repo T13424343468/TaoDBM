@@ -37,7 +37,7 @@ public static class Favorites
     public static void Save(List<FavoriteItem> items)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(File)!);
-        System.IO.File.WriteAllText(File, JsonSerializer.Serialize(items, Opt));
+        AtomicWrite.Text(File, JsonSerializer.Serialize(items, Opt));
     }
 
     /// <summary>新增收藏；同名覆盖（保留原 Id 与创建时间）。</summary>

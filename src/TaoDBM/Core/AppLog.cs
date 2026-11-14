@@ -29,4 +29,7 @@ public static class AppLog
         }
         catch { /* 日志写失败静默：诊断绝不干扰业务 */ }
     }
+
+    /// <summary>DEBUG 级留痕（2026-11-14 五.5 收敛）：清理路径（Dispose/断开/退出）允许吞但必须落痕，DEBUG 前缀便于过滤。</summary>
+    public static void Debug(string message) => Write($"[DEBUG] {message}");
 }

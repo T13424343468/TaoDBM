@@ -204,7 +204,7 @@ public abstract class RelationalProvider : IDbProvider
                         }
                     }
                     // 读完后取受影响行数
-                    try { qr.Affected = reader.RecordsAffected; } catch { }
+                    Safe.Run(() => qr.Affected = reader.RecordsAffected, "读取受影响行数");
                 }
                 finally { await reader.DisposeAsync(); }
                 // 无结果集的语句（DDL/DML）补充受影响行数

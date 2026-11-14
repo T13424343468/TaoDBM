@@ -41,7 +41,7 @@ public static class AppPrefs
         try
         {
             Directory.CreateDirectory(Path.GetDirectoryName(File)!);
-            System.IO.File.WriteAllText(File, JsonSerializer.Serialize(new PrefsFile
+            AtomicWrite.Text(File, JsonSerializer.Serialize(new PrefsFile
             {
                 CloseBehavior = behavior switch
                 {

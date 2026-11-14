@@ -27,7 +27,7 @@ public static class ThemeStore
     public static void Save(string name)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(File)!);
-        System.IO.File.WriteAllText(File, JsonSerializer.Serialize(new ThemeFile { Theme = ThemePalette.Normalize(name) }));
+        AtomicWrite.Text(File, JsonSerializer.Serialize(new ThemeFile { Theme = ThemePalette.Normalize(name) }));
     }
 
     private sealed class ThemeFile { public string Theme { get; set; } = "ink"; }

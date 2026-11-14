@@ -91,7 +91,7 @@ public static class ConnectionStore
             return c;
         }).ToList();
         var opt = new JsonSerializerOptions { WriteIndented = true, Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
-        System.IO.File.WriteAllText(File, JsonSerializer.Serialize(copies, opt));
+        AtomicWrite.Text(File, JsonSerializer.Serialize(copies, opt));
     }
 
     private static ConnectionProfile Clone(ConnectionProfile p) => new()

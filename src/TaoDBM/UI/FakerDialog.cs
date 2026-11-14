@@ -331,7 +331,7 @@ public static class FakerDialog
             var refTable = tables.FirstOrDefault(t => string.Equals(t.Name, e, StringComparison.OrdinalIgnoreCase));
             var pkCol = refTable?.Columns.FirstOrDefault(c => c.IsKey);
             if (refTable is null || pkCol is null) continue;
-            try
+            await Safe.RunAsync(async () =>
             {
                 var sql = SeedPlan.SelectTopSql(provider.Profile.Engine, e, pkCol.Name, 100);
                 var qr = await provider.Execute(db, sql);
@@ -340,8 +340,7 @@ public static class FakerDialog
                     vals.Add(row.Length > 0 ? row[0] : null);
                 if (vals.Count > 0)
                     pools[e] = new Dictionary<string, List<object?>>(StringComparer.OrdinalIgnoreCase) { [pkCol.Name] = vals };
-            }
-            catch { }
+            }, $"采样池:{e}");
         }
         return pools;
     }

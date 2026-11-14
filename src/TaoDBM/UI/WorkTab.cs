@@ -732,13 +732,9 @@ public class WorkTab : Grid
         }
         set
         {
-            try
-            {
-                _applying = true;
-                _editor.Document?.SetText(Microsoft.UI.Text.TextSetOptions.None, value ?? "");
-            }
-            catch { }
-            finally { _applying = false; }
+            _applying = true;
+            Safe.Run(() => _editor.Document?.SetText(Microsoft.UI.Text.TextSetOptions.None, value ?? ""), "编辑器写文本");
+            _applying = false;
             ApplyHighlight();
         }
     }

@@ -1461,6 +1461,39 @@ Layer("万链");
         $"断言 {totalAsserts} 条，违规 {violations}，耗时 {sw.Elapsed.TotalSeconds:0.0}s");
     Console.WriteLine($"  （万链归账：{ChainCount} 链 / {ChainCount * StepsPerChain} 步 / 断言 {totalAsserts} 条 / 违规 {violations} / 耗时 {sw.Elapsed.TotalSeconds:0.0}s）");
 
+Console.WriteLine("== AtomicWrite 原子落盘（三.6 断电模拟）==");
+{
+    var dir = Path.Combine(Path.GetTempPath(), "taodbm-atw-" + Guid.NewGuid().ToString("N"));
+    Directory.CreateDirectory(dir);
+    var f = Path.Combine(dir, "cfg.json");
+    // 正常写：目标完整、tmp 消失（已原子 move 而非残留）
+    AtomicWrite.Text(f, "{\"v\":1}");
+    Check("原子写：目标完整且无残留tmp", System.IO.File.ReadAllText(f) == "{\"v\":1}" && !System.IO.File.Exists(f + ".tmp"),
+        System.IO.File.Exists(f + ".tmp") ? "tmp 残留" : "");
+    // 覆盖写：旧版被新版完整替换，中途绝不出现半截目标
+    AtomicWrite.Text(f, "{\"v\":2}");
+    Check("原子覆盖：新版完整替换", System.IO.File.ReadAllText(f) == "{\"v\":2}" && !System.IO.File.Exists(f + ".tmp"));
+    // 断电模拟：写 tmp 后、move 前进程死亡 → 目标仍是完整旧版（不清零）
+    var f2 = Path.Combine(dir, "conn.json");
+    AtomicWrite.Text(f2, "{\"good\":true}");
+    System.IO.File.WriteAllText(f2 + ".tmp", "{\"half\":");   // 模拟断电时半截 tmp
+    Check("断电模拟：目标保留完整旧版", System.IO.File.ReadAllText(f2) == "{\"good\":true}",
+        "目标被半截污染");
+    // 断电后恢复：残留半截 tmp 不污染下次写入，且被收敛
+    AtomicWrite.Text(f2, "{\"good\":false}");
+    Check("断电恢复：残留tmp被收敛且目标完整", System.IO.File.ReadAllText(f2) == "{\"good\":false}" && !System.IO.File.Exists(f2 + ".tmp"));
+    // 六处落盘点源码级断言：Core 六个存储文件不得再直写目标文件（家法三.6 收敛零遗漏）
+    {
+        string[] six = ["AppPrefs.cs", "ConnectionStore.cs", "Favorites.cs", "QueryHistory.cs", "TabSession.cs", "ThemeStore.cs"];
+        var root = AppContext.BaseDirectory;
+        while (root != null && !System.IO.File.Exists(Path.Combine(root, "TaoDBM.sln"))) root = Path.GetDirectoryName(root);
+        var bad = six.Where(n => !System.IO.File.Exists(Path.Combine(root!, "src", "TaoDBM", "Core", n)) ||
+            System.IO.File.ReadAllText(Path.Combine(root!, "src", "TaoDBM", "Core", n)).Contains("File.WriteAllText(File,"))
+            .ToList();
+        Check("六处落盘点统一走 AtomicWrite 零遗漏", bad.Count == 0, string.Join(",", bad));
+    }
+}
+
 RealDbCheck.Run(Check);
 }
 
